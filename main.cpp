@@ -244,12 +244,7 @@ void FibHeap::heapDelete(node *&x) {
 int main() {
     auto fibHeap = FibHeap::makeHeap();
     fibHeap->insert(5);
-    fibHeap->insert(12);
     fibHeap->insert(2);
-	auto fibHeap2 = FibHeap::makeHeap();
-	fibHeap2->insert(6);
-	fibHeap2->insert(11);
-	fibHeap2->insert(4);
-	auto fibUnion = FibHeap::makeUnion(fibHeap, fibHeap2);
+    std::cout << fibHeap->extractMin()->key;
     return 0;
 }
