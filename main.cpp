@@ -9,8 +9,9 @@ struct node {
         this->key = key;
     }
     void insertToList(node*&);
-    void deleteFromList(node*&);
+    void deleteFromList();
     void mergeWithList(node*&);
+    node* copyToMakeARoot();
 };
 
 void node::insertToList(node *&aNode) {
@@ -28,16 +29,26 @@ void node::insertToList(node *&aNode) {
     }
 }
 
-void node::deleteFromList(node *&) {
+void node::deleteFromList() {
     this->right->left = this->left;
     this->left->right = this->right;
 }
 
 void node::mergeWithList(node *&aNode) {
-    this->right->left = aNode->right;
-    aNode->right->left = this->right;
-    this->right = aNode;
-    aNode->right = this;
+	for (auto i = this->right; i != this; i = this->right) {
+		i->deleteFromList();
+		i->insertToList(aNode);
+	}
+	this->insertToList(aNode);
+}
+
+node* node::copyToMakeARoot() {
+    auto copy = new node(this->key);
+    copy->p = nullptr;
+    copy->mark = false;
+    copy->child = this->child;
+	copy->degree = this->degree;
+    return copy;
 }
 
 class FibHeap {
@@ -54,7 +65,6 @@ public:
     void cut(node *&x, node *&y);
     void cascadingCut(node *&y);
     void heapDelete(node *&x);
-    void pisanoDelete(node *&x);
 };
 
 FibHeap* FibHeap::makeHeap() {
@@ -100,7 +110,7 @@ node* FibHeap::extractMin() {
         if (z->degree > 0) {
             auto c = z->child;
             for (auto i = c->right; i != c; i = c->right) {
-                i->deleteFromList(c);
+                i->deleteFromList();
                 i->insertToList(z);
                 i->p = nullptr;
             }
@@ -108,7 +118,7 @@ node* FibHeap::extractMin() {
             c->p = nullptr;
         }
 
-        z->deleteFromList(z);
+        z->deleteFromList();
         if (z == z->right) {
             this->min = nullptr;
         }
@@ -178,7 +188,7 @@ void FibHeap::consolidate() {
 }
 
 void FibHeap::heapLink(node *&y, node *&x) {
-    y->deleteFromList(this->min);
+    y->deleteFromList();
     y->p = x;
     y->insertToList(x->child);
     (x->degree)++;
@@ -195,22 +205,22 @@ void FibHeap::decreaseKey(node *&x, int k) {
         this->cut(x, y);
         this->cascadingCut(y);
     }
-    if (x->key < this->min->key)
-        this->min = x;
 }
 
 void FibHeap::cut(node *&x, node *&y) {
-    x->deleteFromList(y->child);
+    x->deleteFromList();
+    auto copyToInsert = x->copyToMakeARoot();
     if (y->degree == 1) {
-        y->child = nullptr;
+        delete(x);
+		y->child = nullptr;
     }
     else {
         y->child = x->right;
     }
     (y->degree)--;
-    x->insertToList(this->min);
-    x->p = nullptr;
-    x->mark = false;
+    copyToInsert->insertToList(this->min);
+	if (copyToInsert->key < this->min->key)
+		this->min = copyToInsert;
 }
 
 void FibHeap::cascadingCut(node *&y) {
@@ -231,32 +241,15 @@ void FibHeap::heapDelete(node *&x) {
     this->extractMin();
 }
 
-void FibHeap::pisanoDelete(node *&x) {
-    if (x == this->min) {
-        extractMin();
-    }
-    else {
-        auto y = x->p;
-        if (y != nullptr) {
-            cut(x, y);
-            cascadingCut(y);
-        }
-        x->child->mergeWithList(this->min);
-        x->deleteFromList(this->min);
-    }
-}
-
 int main() {
     auto fibHeap = FibHeap::makeHeap();
     fibHeap->insert(5);
     fibHeap->insert(12);
     fibHeap->insert(2);
-    fibHeap->insert(6);
-    fibHeap->insert(11);
-    fibHeap->insert(4);
-    std::cout << fibHeap->n << std::endl;
-    std::cout << fibHeap->extractMin()->key << std::endl;
-    fibHeap->heapDelete(fibHeap->min->right->child);
-    std::cout << fibHeap->min->key << std::endl;
+	auto fibHeap2 = FibHeap::makeHeap();
+	fibHeap2->insert(6);
+	fibHeap2->insert(11);
+	fibHeap2->insert(4);
+	auto fibUnion = FibHeap::makeUnion(fibHeap, fibHeap2);
     return 0;
 }
